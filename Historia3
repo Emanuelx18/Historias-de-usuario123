@@ -1,0 +1,249 @@
+# -----------------------------------
+# SISTEMA DE INVENTARIO COMPLETO
+# CRUD + ESTADÍSTICAS + CSV
+# -----------------------------------
+
+import csv
+
+# Lista principal
+inventario = []
+
+# -----------------------------------
+# FUNCIONES CRUD
+# -----------------------------------
+
+def agregar_producto():
+    """Agrega un producto al inventario"""
+    nombre = input("Nombre: ")
+
+    try:
+        precio = float(input("Precio: "))
+        cantidad = int(input("Cantidad: "))
+        if precio < 0 or cantidad < 0:
+            print("Valores no pueden ser negativos.")
+            return
+    except:
+        print("Error en los datos.")
+        return
+
+    inventario.append({
+        "nombre": nombre,
+        "precio": precio,
+        "cantidad": cantidad
+    })
+
+    print(" Producto agregado")
+
+
+def mostrar_inventario():
+    """Muestra todos los productos"""
+    if not inventario:
+        print("Inventario vacío")
+        return
+
+    for p in inventario:
+        print(f"Producto: {p['nombre']} | Precio: {p['precio']} | Cantidad: {p['cantidad']}")
+
+
+def buscar_producto():
+    """Busca producto por nombre"""
+    nombre = input("Buscar: ")
+    for p in inventario:
+        if p["nombre"].lower() == nombre.lower():
+            print(p)
+            return p
+    print("No encontrado")
+    return None
+
+
+def actualizar_producto():
+    """Actualiza un producto"""
+    nombre = input("Producto a actualizar: ")
+
+    for p in inventario:
+        if p["nombre"].lower() == nombre.lower():
+            try:
+                nuevo_precio = float(input("Nuevo precio: "))
+                nueva_cantidad = int(input("Nueva cantidad: "))
+                if nuevo_precio < 0 or nueva_cantidad < 0:
+                    print("Valores inválidos")
+                    return
+            except:
+                print("Error en datos")
+                return
+
+            p["precio"] = nuevo_precio
+            p["cantidad"] = nueva_cantidad
+            print(" Actualizado")
+            return
+
+    print("Producto no encontrado")
+
+
+def eliminar_producto():
+    """Elimina producto"""
+    nombre = input("Eliminar: ")
+
+    for p in inventario:
+        if p["nombre"].lower() == nombre.lower():
+            inventario.remove(p)
+            print("🗑 Eliminado")
+            return
+
+    print("Producto no encontrado")
+
+# -----------------------------------
+# ESTADÍSTICAS
+# -----------------------------------
+
+def calcular_estadisticas():
+    """Calcula estadísticas del inventario"""
+    if not inventario:
+        print("Inventario vacío")
+        return
+
+    subtotal = lambda p: p["precio"] * p["cantidad"]
+
+    unidades = sum(p["cantidad"] for p in inventario)
+    valor_total = sum(subtotal(p) for p in inventario)
+
+    mas_caro = max(inventario, key=lambda p: p["precio"])
+    mayor_stock = max(inventario, key=lambda p: p["cantidad"])
+
+    print("\n--- ESTADÍSTICAS ---")
+    print("Unidades totales:", unidades)
+    print("Valor total:", valor_total)
+    print("Producto más caro:", mas_caro["nombre"], mas_caro["precio"])
+    print("Mayor stock:", mayor_stock["nombre"], mayor_stock["cantidad"])
+
+# -----------------------------------
+# CSV
+# -----------------------------------
+
+def guardar_csv():
+    """Guarda inventario en CSV"""
+    if not inventario:
+        print("Inventario vacío")
+        return
+
+    ruta = input("Ruta archivo (ej: inventario.csv): ")
+
+    try:
+        with open(ruta, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["nombre", "precio", "cantidad"])
+
+            for p in inventario:
+                writer.writerow([p["nombre"], p["precio"], p["cantidad"]])
+
+        print(" Guardado en:", ruta)
+
+    except Exception as e:
+        print("Error:", e)
+
+
+def cargar_csv():
+    """Carga inventario desde CSV"""
+    global inventario
+
+    ruta = input("Ruta archivo: ")
+    nuevos = []
+    errores = 0
+
+    try:
+        with open(ruta, "r", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            header = next(reader)
+
+            if header != ["nombre", "precio", "cantidad"]:
+                print("Formato inválido")
+                return
+
+            for fila in reader:
+                try:
+                    if len(fila) != 3:
+                        raise ValueError
+
+                    nombre = fila[0]
+                    precio = float(fila[1])
+                    cantidad = int(fila[2])
+
+                    if precio < 0 or cantidad < 0:
+                        raise ValueError
+
+                    nuevos.append({
+                        "nombre": nombre,
+                        "precio": precio,
+                        "cantidad": cantidad
+                    })
+
+                except:
+                    errores += 1
+
+        print("Cargados:", len(nuevos))
+        print("Errores:", errores)
+
+        resp = input("¿Sobrescribir inventario? (S/N): ").upper()
+
+        if resp == "S":
+            inventario = nuevos
+        else:
+            # fusión simple
+            for nuevo in nuevos:
+                encontrado = False
+                for p in inventario:
+                    if p["nombre"].lower() == nuevo["nombre"].lower():
+                        p["cantidad"] += nuevo["cantidad"]
+                        p["precio"] = nuevo["precio"]
+                        encontrado = True
+                        break
+                if not encontrado:
+                    inventario.append(nuevo)
+
+        print(" Inventario actualizado")
+
+    except FileNotFoundError:
+        print("Archivo no encontrado")
+    except Exception as e:
+        print("Error:", e)
+
+# -----------------------------------
+# MENÚ PRINCIPAL
+# -----------------------------------
+
+opcion = ""
+
+while opcion != "9":
+    print("\n===== MENÚ =====")
+    print("1. Agregar")
+    print("2. Mostrar")
+    print("3. Buscar")
+    print("4. Actualizar")
+    print("5. Eliminar")
+    print("6. Estadísticas")
+    print("7. Guardar CSV")
+    print("8. Cargar CSV")
+    print("9. Salir")
+
+    opcion = input("Seleccione: ")
+
+    if opcion == "1":
+        agregar_producto()
+    elif opcion == "2":
+        mostrar_inventario()
+    elif opcion == "3":
+        buscar_producto()
+    elif opcion == "4":
+        actualizar_producto()
+    elif opcion == "5":
+        eliminar_producto()
+    elif opcion == "6":
+        calcular_estadisticas()
+    elif opcion == "7":
+        guardar_csv()
+    elif opcion == "8":
+        cargar_csv()
+    elif opcion == "9":
+        print("Saliendo...")
+    else:
+        print(" Opción inválida")
